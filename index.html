@@ -2,10 +2,38 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mic Deffects</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<h1>Mic Deffects</h1>
-<p>Deployment check: if you can read this at mic.labs.bronius.com, it's wired up.</p>
+<span class="tag tag--king-b" aria-hidden="true">King-B</span>
+<span class="tag tag--liny-v" aria-hidden="true">Liny-V</span>
+<span class="tag tag--dr-kai" aria-hidden="true">Dr. Kai</span>
+<span class="tag tag--mart-d" aria-hidden="true">Mart D</span>
+
+<header>
+  <h1>Mic Deffects</h1>
+  <p class="tagline">bronius labs — realtime mic effects</p>
+</header>
+
+<main class="panel">
+  <select class="effect-select" aria-label="Effect"></select>
+
+  <button class="mic-button" type="button">Start</button>
+
+  <div class="level-meter"><div class="level-meter-fill"></div></div>
+
+  <p class="status" role="status"></p>
+</main>
+
+<footer>
+  <p>Everything runs locally in your browser. No audio leaves your device.</p>
+</footer>
+
+<script src="app.js"></script>
 </body>
 </html>
