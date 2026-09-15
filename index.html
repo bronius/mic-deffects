@@ -25,13 +25,53 @@
 
   <button class="mic-button" type="button">Start</button>
 
+  <div class="frame-flow">
+    <p class="frame-flow-label">frame flow</p>
+    <canvas class="frame-flow-canvas"></canvas>
+    <div class="frame-flow-legend">
+      <span><span class="legend-swatch legend-swatch--pass"></span>capture</span>
+      <span><span class="legend-swatch legend-swatch--hit"></span>reversed</span>
+    </div>
+  </div>
+
   <div class="level-meter"><div class="level-meter-fill"></div></div>
 
   <p class="status" role="status"></p>
+
+  <details class="tuning">
+    <summary>Tuning</summary>
+
+    <div class="tuning-row">
+      <label for="frame-size-range">Frame size <span class="tuning-hint">bigger = more audible reversal, more latency</span></label>
+      <div class="tuning-controls">
+        <input type="range" id="frame-size-range" min="256" max="8192" step="256" value="2048">
+        <input type="number" id="frame-size-number" min="256" max="8192" step="256" value="2048">
+        <span class="tuning-unit" id="frame-size-ms"></span>
+      </div>
+    </div>
+
+    <div class="tuning-row">
+      <label for="energy-threshold-range">Energy threshold <span class="tuning-hint">lower = catches more S / F / SH</span></label>
+      <div class="tuning-controls">
+        <input type="range" id="energy-threshold-range" min="0" max="0.05" step="0.001" value="0.012">
+        <input type="number" id="energy-threshold-number" min="0" max="0.05" step="0.001" value="0.012">
+      </div>
+    </div>
+
+    <div class="tuning-row">
+      <label for="peak-threshold-range">Peak threshold <span class="tuning-hint">lower = catches more P / T / K / hard C</span></label>
+      <div class="tuning-controls">
+        <input type="range" id="peak-threshold-range" min="0" max="0.3" step="0.005" value="0.09">
+        <input type="number" id="peak-threshold-number" min="0" max="0.3" step="0.005" value="0.09">
+      </div>
+    </div>
+
+    <p class="tuning-note">See <a href="TUNING.md">TUNING.md</a> for what these do and what to try.</p>
+  </details>
 </main>
 
 <footer>
-  <p>Everything runs locally in your browser. No audio leaves your device.</p>
+  <p>Everything runs locally in your browser. No audio leaves your device. <em>* Mic permission required.</em></p>
 </footer>
 
 <script src="app.js"></script>
