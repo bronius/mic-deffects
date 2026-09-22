@@ -31,7 +31,7 @@ let effectNode = null;
 let analyserNode = null;
 let meterHandle = null;
 
-const MAX_FRAMES = 64; // ~3s of history at 2048-sample frames / 44.1kHz
+const MAX_FRAMES = 64; // rolling history length, in frames — actual duration depends on the tunable frame size
 let frameHistory = [];
 
 function resizeFrameFlowCanvas() {
@@ -79,9 +79,9 @@ window.addEventListener("resize", resizeFrameFlowCanvas);
 
 // Live-tunable detector params — sent to the worklet whenever they change.
 // Defaults mirror worklets/reversed-fricatives-processor.js; see TUNING.md.
-let frameSize = 2048;
-let energyThreshold = 0.012;
-let peakThreshold = 0.09;
+let frameSize = 3584;
+let energyThreshold = 0.088;
+let peakThreshold = 0.045;
 
 const frameSizeMsEl = document.querySelector("#frame-size-ms");
 

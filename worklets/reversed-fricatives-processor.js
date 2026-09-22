@@ -6,9 +6,9 @@
 // frameSize / energyThreshold / peakThreshold are live-tunable from the main
 // thread (the "Tuning" panel in index.html) via port messages — the consts
 // below are just startup defaults. See TUNING.md for what each one does.
-const DEFAULT_FRAME_SIZE = 2048; // ~46ms at 44.1kHz
-const DEFAULT_ENERGY_THRESHOLD = 0.012; // RMS of the high-passed frame — sustained noise (S, F)
-const DEFAULT_PEAK_THRESHOLD = 0.09; // peak |high-passed sample| — brief bursts (P, T, K, hard C)
+const DEFAULT_FRAME_SIZE = 256; // ~6ms at 44.1kHz — lowest the UI slider allows; sounds best in practice
+const DEFAULT_ENERGY_THRESHOLD = 0; // RMS of the high-passed frame — sustained noise (S, F)
+const DEFAULT_PEAK_THRESHOLD = 0; // peak |high-passed sample| — brief bursts (P, T, K, hard C)
 
 class ReversedFricativesProcessor extends AudioWorkletProcessor {
   constructor(options) {
