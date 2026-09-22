@@ -18,6 +18,9 @@ const frameFlowCtx = frameFlowCanvas.getContext("2d");
 const helpButton = document.querySelector(".help-button");
 const helpDialog = document.querySelector(".help-dialog");
 const helpDialogClose = document.querySelector(".help-dialog-close");
+const recButton = document.querySelector(".rec-button");
+const recTimeEl = document.querySelector(".rec-time");
+const playButton = document.querySelector(".play-button");
 
 helpButton.addEventListener("click", () => helpDialog.showModal());
 helpDialogClose.addEventListener("click", () => helpDialog.close());
@@ -36,6 +39,7 @@ let sourceNode = null;
 let effectNode = null;
 let analyserNode = null;
 let meterHandle = null;
+let recDestination = null;
 
 const MAX_FRAMES = 64; // rolling history length, in frames — actual duration depends on the tunable frame size
 let frameHistory = [];
@@ -150,6 +154,7 @@ function setUiListening(next) {
   micButton.classList.toggle("listening", listening);
   micButton.textContent = listening ? "Stop" : "Start";
   effectSelect.disabled = listening;
+  updateTransportUI();
 }
 
 function browserSupported() {
@@ -214,10 +219,12 @@ async function start() {
     });
     analyserNode = audioContext.createAnalyser();
     analyserNode.fftSize = 512;
+    recDestination = audioContext.createMediaStreamDestination();
 
     sourceNode.connect(effectNode);
     effectNode.connect(analyserNode);
     analyserNode.connect(audioContext.destination);
+    effectNode.connect(recDestination); // post-effect tap, so recordings hear what you hear
 
     updateFrameSizeLabel();
     resetFrameFlow();
@@ -244,6 +251,7 @@ async function stop() {
   sourceNode?.disconnect();
   effectNode?.disconnect();
   analyserNode?.disconnect();
+  recDestination?.disconnect();
   mediaStream?.getTracks().forEach((t) => t.stop());
   await audioContext?.close();
 
@@ -251,6 +259,7 @@ async function stop() {
   sourceNode = null;
   effectNode = null;
   analyserNode = null;
+  recDestination = null;
   mediaStream = null;
 
   setUiListening(false);
@@ -265,5 +274,145 @@ micButton.addEventListener("click", () => {
   }
 });
 
+// Recording: taps recDestination (see start()) via MediaRecorder, capped at
+// REC_MAX_MS. Stopping the recording — by hand or via the cap — also ends
+// the live session, per the UX: REC-stop lands you in "Start or Play" state.
+const REC_MAX_MS = 15000;
+let recorder = null;
+let recChunks = [];
+let recordedUrl = null;
+let recordedBlobSize = 0;
+let recordedBlobType = "";
+let recording = false;
+let recTimeoutHandle = null;
+let recTickHandle = null;
+let recStartTime = 0;
+
+let playing = false;
+const playbackAudio = new Audio();
+playbackAudio.addEventListener("ended", () => {
+  playing = false;
+  updateTransportUI();
+});
+
+function updateTransportUI() {
+  recButton.hidden = !listening;
+  recButton.classList.toggle("recording", recording);
+  recButton.textContent = recording ? "■ Stop" : "● REC";
+  recTimeEl.hidden = !recording;
+
+  playButton.hidden = listening || !recordedUrl;
+  playButton.classList.toggle("playing", playing);
+  playButton.textContent = playing ? "■ Stop" : "▶ Play";
+
+  micButton.disabled = recording || playing;
+}
+
+function pickRecorderMimeType() {
+  const candidates = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus", "audio/mp4"];
+  return candidates.find((type) => window.MediaRecorder?.isTypeSupported?.(type)) ?? "";
+}
+
+function updateRecTime() {
+  const elapsed = Math.min(REC_MAX_MS, performance.now() - recStartTime);
+  recTimeEl.textContent = `${(elapsed / 1000).toFixed(1)}s / ${(REC_MAX_MS / 1000).toFixed(0)}s`;
+}
+
+function startRecording() {
+  if (!listening || recording || !recDestination) return;
+
+  recChunks = [];
+  const mimeType = pickRecorderMimeType();
+  recorder = new MediaRecorder(recDestination.stream, mimeType ? { mimeType } : undefined);
+  recorder.ondataavailable = (e) => {
+    if (e.data.size) recChunks.push(e.data);
+  };
+  recorder.onstop = () => {
+    if (recordedUrl) URL.revokeObjectURL(recordedUrl);
+    const blob = new Blob(recChunks, { type: recorder.mimeType || "audio/webm" });
+    recordedBlobSize = blob.size;
+    recordedBlobType = blob.type;
+    recordedUrl = URL.createObjectURL(blob);
+    console.log(`Recording finalized: ${blob.size} bytes, type=${blob.type}`);
+    updateTransportUI();
+  };
+  recorder.start();
+
+  recording = true;
+  recStartTime = performance.now();
+  updateRecTime();
+  recTickHandle = setInterval(updateRecTime, 200);
+  recTimeoutHandle = setTimeout(stopRecording, REC_MAX_MS);
+  updateTransportUI();
+}
+
+function finishMediaRecorder() {
+  // recorder.stop() finalizes asynchronously (dataavailable + stop events) —
+  // wait for that before tearing down the AudioContext, or the recording
+  // gets cut off mid-flush and comes out empty.
+  return new Promise((resolve) => {
+    if (!recorder || recorder.state === "inactive") {
+      resolve();
+      return;
+    }
+    recorder.addEventListener("stop", resolve, { once: true });
+    recorder.stop();
+  });
+}
+
+async function stopRecording() {
+  clearTimeout(recTimeoutHandle);
+  clearInterval(recTickHandle);
+  recTimeoutHandle = null;
+  recTickHandle = null;
+
+  await finishMediaRecorder();
+  await stop();
+  recording = false;
+
+  if (recordedUrl) {
+    const kb = Math.max(1, Math.round(recordedBlobSize / 1024));
+    setStatus(`Recording ready — ${kb}KB (${recordedBlobType || "unknown type"}). Press ▶ Play.`);
+  }
+}
+
+function playRecording() {
+  if (!recordedUrl || listening) return;
+  playbackAudio.src = recordedUrl;
+  playbackAudio.currentTime = 0;
+  playbackAudio.play().catch((err) => {
+    console.error("Playback failed:", err);
+    setStatus(`Couldn't play back the recording (${err?.name || "unknown error"}).`, true);
+    playing = false;
+    updateTransportUI();
+  });
+  playing = true;
+  updateTransportUI();
+}
+
+function stopPlayback() {
+  playbackAudio.pause();
+  playbackAudio.currentTime = 0;
+  playing = false;
+  updateTransportUI();
+}
+
+recButton.addEventListener("click", () => {
+  if (recording) {
+    stopRecording();
+  } else {
+    startRecording();
+  }
+});
+
+playButton.addEventListener("click", () => {
+  if (playing) {
+    stopPlayback();
+  } else {
+    playRecording();
+  }
+});
+
 resetFrameFlow();
+updateTransportUI();
 setStatus(IDLE_STATUS);

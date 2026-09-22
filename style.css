@@ -203,10 +203,72 @@ h1 {
   animation: pulse 1.6s ease-out infinite;
 }
 
+.mic-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  animation: none;
+}
+
 @keyframes pulse {
   0%   { box-shadow: 0 0 0 0 rgba(94, 234, 212, 0.45); }
   70%  { box-shadow: 0 0 0 22px rgba(94, 234, 212, 0); }
   100% { box-shadow: 0 0 0 0 rgba(94, 234, 212, 0); }
+}
+
+.transport {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+.transport-button {
+  padding: 0.5rem 1rem;
+  background: #14171b;
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.transport-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.rec-button {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.rec-button.recording {
+  background: rgba(248, 113, 113, 0.12);
+  animation: pulse-rec 1.2s ease-out infinite;
+}
+
+@keyframes pulse-rec {
+  0%   { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.45); }
+  70%  { box-shadow: 0 0 0 18px rgba(248, 113, 113, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0); }
+}
+
+.rec-time {
+  font-size: 0.75rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.play-button {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.play-button.playing {
+  background: var(--accent-dim);
+  animation: pulse 1.6s ease-out infinite;
 }
 
 .frame-flow {

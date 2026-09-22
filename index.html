@@ -33,6 +33,9 @@
     sounds reverse) to constant granular glitchiness. Worth playing with.
   </p>
   <p><strong>Headphones work best</strong>, to avoid mic/speaker feedback.</p>
+  <p>Once you're listening, hit <strong>● REC</strong> to capture up to 15
+  seconds — stopping it also stops the live session, and you can
+  <strong>▶ Play</strong> it back right after.</p>
   <p class="help-dialog-footnote">Everything runs locally in your browser. No audio leaves your device.</p>
   <button class="help-dialog-close" type="button" autofocus>Got it</button>
 </dialog>
@@ -41,6 +44,12 @@
   <select class="effect-select" aria-label="Effect"></select>
 
   <button class="mic-button" type="button">Start</button>
+
+  <div class="transport">
+    <button class="rec-button transport-button" type="button" hidden>● REC</button>
+    <span class="rec-time" hidden></span>
+    <button class="play-button transport-button" type="button" hidden>▶ Play</button>
+  </div>
 
   <div class="frame-flow">
     <p class="frame-flow-label">frame flow</p>
