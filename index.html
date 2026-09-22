@@ -18,7 +18,24 @@
 <header>
   <h1>Mic Deffects</h1>
   <p class="tagline">bronius labs — realtime mic effects</p>
+  <button class="help-button" type="button">What is this?!</button>
 </header>
+
+<dialog class="help-dialog">
+  <h2>What is this?!</h2>
+  <p>
+    Mic Deffects plays your voice back in near-realtime with a twist: parts
+    of it come out reversed. Tap Start, allow mic access, and just talk.
+  </p>
+  <p>
+    Don't miss the <strong>Tuning</strong> section below the meter — three
+    sliders that change how the effect sounds, from subtle (only specific
+    sounds reverse) to constant granular glitchiness. Worth playing with.
+  </p>
+  <p><strong>Headphones work best</strong>, to avoid mic/speaker feedback.</p>
+  <p class="help-dialog-footnote">Everything runs locally in your browser. No audio leaves your device.</p>
+  <button class="help-dialog-close" type="button" autofocus>Got it</button>
+</dialog>
 
 <main class="panel">
   <select class="effect-select" aria-label="Effect"></select>
@@ -66,7 +83,7 @@
       </div>
     </div>
 
-    <p class="tuning-note">See <a href="TUNING.md">TUNING.md</a> for what these do and what to try.</p>
+    <p class="tuning-note">See <a href="https://github.com/bronius/mic-deffects/blob/main/TUNING.md">TUNING.md (on GitHub)</a> for what these do.</p>
   </details>
 </main>
 

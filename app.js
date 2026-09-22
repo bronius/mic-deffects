@@ -15,6 +15,12 @@ const levelFill = document.querySelector(".level-meter-fill");
 const statusEl = document.querySelector(".status");
 const frameFlowCanvas = document.querySelector(".frame-flow-canvas");
 const frameFlowCtx = frameFlowCanvas.getContext("2d");
+const helpButton = document.querySelector(".help-button");
+const helpDialog = document.querySelector(".help-dialog");
+const helpDialogClose = document.querySelector(".help-dialog-close");
+
+helpButton.addEventListener("click", () => helpDialog.showModal());
+helpDialogClose.addEventListener("click", () => helpDialog.close());
 
 for (const effect of EFFECTS) {
   const option = document.createElement("option");
