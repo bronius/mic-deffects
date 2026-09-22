@@ -5,6 +5,22 @@ microphone stream. **Reversed fricatives is the first effect, not the whole
 project** — the app should be built so additional mic effects can be added
 later without a rewrite.
 
+## Run it locally
+
+No build step — it's static HTML/CSS/JS. It does need to be served over
+`http://`, though: `AudioWorklet.addModule()` and `getUserMedia()` won't
+work opened directly as a `file://` page.
+
+From the repo root, start any static server, e.g.:
+
+```bash
+python3 -m http.server 8000
+```
+
+Then open `http://localhost:8000` in a recent Chrome, Edge, or Firefox,
+allow microphone access, and hit Start. Headphones are recommended to
+avoid feedback.
+
 ## Idea
 
 Mic in, effect(s) applied in near-realtime, mic-like output played back —
