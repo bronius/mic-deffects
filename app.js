@@ -2,13 +2,13 @@ const EFFECTS = [
   {
     id: "reversed-fricatives",
     label: "Reversed Fricatives",
-    workletUrl: "worklets/reversed-fricatives-processor.js",
+    workletUrl: "worklets/reversed-fricatives-processor.js?v=95deb93d6f",
     processorName: "reversed-fricatives",
   },
   {
     id: "spooky-halloween-voice",
     label: "Spooky Halloween Voice",
-    workletUrl: "worklets/spooky-voice-processor.js",
+    workletUrl: "worklets/spooky-voice-processor.js?v=12feb0f3a3",
     processorName: "spooky-halloween-voice",
   },
 ];
@@ -37,6 +37,7 @@ for (const effect of EFFECTS) {
   option.textContent = effect.label;
   effectSelect.appendChild(option);
 }
+effectSelect.value = "spooky-halloween-voice";
 
 const tuningGroups = document.querySelectorAll(".tuning-group");
 const legendLabelPassEl = document.querySelector(".legend-label-pass");

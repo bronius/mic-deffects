@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Runs cachebust.sh automatically when a commit touches app.js or a worklet,
+# so the cache-busting hash is never committed stale. Re-stages the files it
+# touches so the stamp lands in the same commit. See CLAUDE.md
+# "Cache-busting" for the one-time `git config core.hooksPath .githooks`
+# setup this depends on.
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+if git diff --cached --name-only | grep -qE '^(app\.js|worklets/.*\.js)$'; then
+  ./cachebust.sh
+  git add app.js index.html
+fi

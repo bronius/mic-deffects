@@ -12,18 +12,38 @@ python3 -m http.server 8000
 ```
 
 ## Files
-- `index.html` — UI shell: mic controls, tuning sliders, record/playback, help dialog.
+- `index.html` — UI shell: mic controls, effect select, tuning sliders (per-effect
+  groups), record/playback, help dialog.
 - `app.js` — main-thread logic: `AudioContext` setup, worklet wiring, level meter,
   frame-flow canvas, recording.
 - `worklets/reversed-fricatives-processor.js` — the `AudioWorklet`: per-frame detection
   and reversal.
+- `worklets/spooky-voice-processor.js` — the `AudioWorklet`: granular pitch-down.
 - `style.css` — styling.
-- `TUNING.md` — user-facing explanation of the three tuning knobs.
+- `TUNING.md` — user-facing explanation of each effect's tuning knobs.
 - `README.md` — project description, local-run instructions, open questions.
+- `cachebust.sh` — stamps `app.js`/worklet references with a content-hash query
+  string; see "Cache-busting" below.
 
 ## Deploy
 GitHub Pages from `main`, custom domain via `CNAME` (`mic.labs.bronius.com`). No Actions
 workflow — pushing to `main` is the deploy.
+
+## Cache-busting
+GitHub Pages' CDN can serve a stale `app.js` or worklet after a push. `cachebust.sh`
+rewrites the `?v=<content-hash>` query string on `app.js`'s `<script src>` in
+`index.html` and on each `workletUrl` in `app.js`, so a file only gets a new URL
+(and busts the cache) when its content actually changes — not on every deploy, the
+way a timestamp would.
+
+A pre-commit hook in `.githooks/pre-commit` runs it automatically whenever a commit
+touches `app.js` or a `worklets/*.js` file, and re-stages the restamped files into
+the same commit. It only fires once `git config core.hooksPath .githooks` has been
+run in the clone (already done in this checkout).
+
+Adding a new effect/worklet: add a `restamp "worklets/your-file.js" app.js` line in
+`cachebust.sh` — the list there is explicit, not a glob, to mirror `EFFECTS` in
+`app.js`. Forgetting this means the new worklet never gets cache-busted.
 
 ## Known traps (don't re-break these)
 1. **Tuning defaults live in three places and can desync**: `app.js` module-level
