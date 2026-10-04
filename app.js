@@ -5,6 +5,12 @@ const EFFECTS = [
     workletUrl: "worklets/reversed-fricatives-processor.js",
     processorName: "reversed-fricatives",
   },
+  {
+    id: "spooky-halloween-voice",
+    label: "Spooky Halloween Voice",
+    workletUrl: "worklets/spooky-voice-processor.js",
+    processorName: "spooky-halloween-voice",
+  },
 ];
 
 const IDLE_STATUS = "Tap to start — headphones recommended to avoid feedback";
@@ -31,6 +37,54 @@ for (const effect of EFFECTS) {
   option.textContent = effect.label;
   effectSelect.appendChild(option);
 }
+
+const tuningGroups = document.querySelectorAll(".tuning-group");
+const legendLabelPassEl = document.querySelector(".legend-label-pass");
+const legendLabelHitEl = document.querySelector(".legend-label-hit");
+const legendSwatchPassEl = document.querySelector(".legend-swatch--pass");
+const legendSwatchHitEl = document.querySelector(".legend-swatch--hit");
+const frameFlowLabelEl = document.querySelector(".frame-flow-label");
+
+// Per-effect frame-flow styling: bar colors/labels plus an optional soft
+// "accentGlow" treatment for the top-of-bar marker (used by Spooky Halloween
+// Voice for a Halloween-colored, softened flame tip instead of the sharp
+// amber strip the fricatives effect uses).
+const FRAME_FLOW_STYLE = {
+  "reversed-fricatives": {
+    title: "frame flow",
+    pass: { label: "capture", color: "#5eead4", alpha: 0.55 },
+    hit: { label: "reversed", color: "#ff6ec7" },
+    accent: { color: "#fbbf24" },
+  },
+  "spooky-halloween-voice": {
+    title: "grain flow",
+    pass: { label: "grain A", color: "#f97316", alpha: 0.55 }, // pumpkin orange
+    hit: { label: "grain B", color: "#a855f7" }, // witch purple
+    accent: { color: "#ffb347", glow: "rgba(255, 140, 40, 0.65)", core: "#fff4c2" }, // soft flame tip
+  },
+};
+
+function frameFlowStyle() {
+  return FRAME_FLOW_STYLE[effectSelect.value] ?? FRAME_FLOW_STYLE["reversed-fricatives"];
+}
+
+function updateEffectUi() {
+  const activeId = effectSelect.value;
+  for (const group of tuningGroups) {
+    group.hidden = group.dataset.effect !== activeId;
+  }
+  const style = frameFlowStyle();
+  frameFlowLabelEl.textContent = style.title;
+  legendLabelPassEl.textContent = style.pass.label;
+  legendLabelHitEl.textContent = style.hit.label;
+  legendSwatchPassEl.style.background = style.pass.color;
+  legendSwatchPassEl.style.opacity = style.pass.alpha;
+  legendSwatchHitEl.style.background = style.hit.color;
+  legendSwatchHitEl.style.opacity = 1;
+  resetFrameFlow();
+}
+
+effectSelect.addEventListener("change", updateEffectUi);
 
 let listening = false;
 let audioContext = null;
@@ -60,20 +114,35 @@ function drawFrameFlow() {
 
   const colWidth = w / MAX_FRAMES;
   const barWidth = Math.max(1, colWidth - Math.min(2, colWidth * 0.2));
+  const style = frameFlowStyle();
 
   frameHistory.forEach((frame, i) => {
     const x = i * colWidth;
     const barHeight = Math.max(2, Math.min(1, frame.rms * 8) * h); // *8: tune by ear
     const y = h - barHeight;
 
-    frameFlowCtx.globalAlpha = frame.reversed ? 1 : 0.55;
-    frameFlowCtx.fillStyle = frame.reversed ? "#ff6ec7" : "#5eead4";
+    frameFlowCtx.globalAlpha = frame.reversed ? 1 : style.pass.alpha;
+    frameFlowCtx.fillStyle = frame.reversed ? style.hit.color : style.pass.color;
     frameFlowCtx.fillRect(x, y, barWidth, barHeight);
 
     if (frame.reversed) {
       frameFlowCtx.globalAlpha = 1;
-      frameFlowCtx.fillStyle = "#fbbf24";
-      frameFlowCtx.fillRect(x, 0, barWidth, 3);
+      if (style.accent.glow) {
+        // Softened "flame tip": a warm core fading to the accent color, with
+        // a gentle blur instead of the fricatives effect's flat, sharp strip.
+        frameFlowCtx.save();
+        frameFlowCtx.shadowColor = style.accent.glow;
+        frameFlowCtx.shadowBlur = 5;
+        const gradient = frameFlowCtx.createLinearGradient(x, 0, x, 6);
+        gradient.addColorStop(0, style.accent.core);
+        gradient.addColorStop(1, style.accent.color);
+        frameFlowCtx.fillStyle = gradient;
+        frameFlowCtx.fillRect(x, 0, barWidth, 4);
+        frameFlowCtx.restore();
+      } else {
+        frameFlowCtx.fillStyle = style.accent.color;
+        frameFlowCtx.fillRect(x, 0, barWidth, 3);
+      }
     }
   });
   frameFlowCtx.globalAlpha = 1;
@@ -93,15 +162,42 @@ let frameSize = 3584;
 let energyThreshold = 0.088;
 let peakThreshold = 0.045;
 
+// Live-tunable params for Spooky Halloween Voice.
+// Defaults mirror worklets/spooky-voice-processor.js; see TUNING.md.
+let pitchSemitones = -7;
+let grainSize = 2048;
+
+function semitonesToRatio(semitones) {
+  return Math.pow(2, semitones / 12);
+}
+
 const frameSizeMsEl = document.querySelector("#frame-size-ms");
+const grainSizeMsEl = document.querySelector("#grain-size-ms");
+const pitchShiftStEl = document.querySelector("#pitch-shift-st");
 
 function updateFrameSizeLabel() {
   const sampleRate = audioContext?.sampleRate ?? 44100;
   frameSizeMsEl.textContent = `${Math.round((frameSize / sampleRate) * 1000)} ms`;
 }
 
+function updateGrainSizeLabel() {
+  const sampleRate = audioContext?.sampleRate ?? 44100;
+  grainSizeMsEl.textContent = `${Math.round((grainSize / sampleRate) * 1000)} ms`;
+}
+
+function updatePitchShiftLabel() {
+  pitchShiftStEl.textContent = `${pitchSemitones} st`;
+}
+
+const PROCESSOR_OPTIONS_BY_EFFECT = {
+  "reversed-fricatives": () => ({ frameSize, energyThreshold, peakThreshold }),
+  "spooky-halloween-voice": () => ({ grainSize, pitchRatio: semitonesToRatio(pitchSemitones) }),
+};
+
 function sendParamsToWorklet() {
-  effectNode?.port.postMessage({ frameSize, energyThreshold, peakThreshold });
+  if (!effectNode) return;
+  const build = PROCESSOR_OPTIONS_BY_EFFECT[effectSelect.value];
+  if (build) effectNode.port.postMessage(build());
 }
 
 function bindTuningControl(rangeEl, numberEl, onChange) {
@@ -142,7 +238,27 @@ bindTuningControl(
     sendParamsToWorklet();
   },
 );
+bindTuningControl(
+  document.querySelector("#pitch-shift-range"),
+  document.querySelector("#pitch-shift-number"),
+  (value) => {
+    pitchSemitones = value;
+    updatePitchShiftLabel();
+    sendParamsToWorklet();
+  },
+);
+bindTuningControl(
+  document.querySelector("#grain-size-range"),
+  document.querySelector("#grain-size-number"),
+  (value) => {
+    grainSize = value;
+    updateGrainSizeLabel();
+    sendParamsToWorklet();
+  },
+);
 updateFrameSizeLabel();
+updateGrainSizeLabel();
+updatePitchShiftLabel();
 
 function setStatus(text, isError = false) {
   statusEl.textContent = text;
@@ -215,7 +331,7 @@ async function start() {
     effectNode = new AudioWorkletNode(audioContext, effect.processorName, {
       channelCount: 1,
       channelCountMode: "explicit",
-      processorOptions: { frameSize, energyThreshold, peakThreshold },
+      processorOptions: PROCESSOR_OPTIONS_BY_EFFECT[effect.id]?.() ?? {},
     });
     analyserNode = audioContext.createAnalyser();
     analyserNode.fftSize = 512;
@@ -227,6 +343,7 @@ async function start() {
     effectNode.connect(recDestination); // post-effect tap, so recordings hear what you hear
 
     updateFrameSizeLabel();
+    updateGrainSizeLabel();
     resetFrameFlow();
     effectNode.port.onmessage = (event) => {
       frameHistory.push(event.data);
@@ -413,6 +530,6 @@ playButton.addEventListener("click", () => {
   }
 });
 
-resetFrameFlow();
+updateEffectUi();
 updateTransportUI();
 setStatus(IDLE_STATUS);
